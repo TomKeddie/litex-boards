@@ -49,9 +49,9 @@ _io = [
      Subsignal("id", Pins("U20")), # IO_L8_16_N
      IOStandard("LVCMOS33")
     ),
-    ("user_btn", 0, Pins("U17"), IOStandard("LVCMOS33"), Misc("PULLUP=TRUE")),
-    ("user_led", 0, Pins("P16"), IOStandard("LVCMOS33")),
-    ("rgb_led", 0,
+    ("user_btn_n", 0, Pins("U17"), IOStandard("LVCMOS33"), Misc("PULLUP=TRUE")),
+    ("user_led_n", 0, Pins("P16"), IOStandard("LVCMOS33")),
+    ("rgb_led_n", 0,
         Subsignal("r", Pins("P15")),  # IO_L7_13_P
         Subsignal("g", Pins("P16")),  # IO_L7_13_N
         Subsignal("b", Pins("P14")),  # IO_L8_13_N
