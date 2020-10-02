@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
-# This file is Copyright (c) 2020 Florent Kermarrec <florent@enjoy-digital.fr>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2020 Florent Kermarrec <florent@enjoy-digital.fr>
+# SPDX-License-Identifier: BSD-2-Clause
 
 import os
 import argparse
@@ -35,7 +38,8 @@ class _CRG(Module):
 
         # # #
 
-        self.stop = Signal()
+        self.stop  = Signal()
+        self.reset = Signal()
 
         # Clk / Rst
         clk100 = platform.request("clk100")
@@ -44,12 +48,13 @@ class _CRG(Module):
         # Power on reset
         por_count = Signal(16, reset=2**16-1)
         por_done  = Signal()
-        self.comb += self.cd_por.clk.eq(ClockSignal())
+        self.comb += self.cd_por.clk.eq(clk100)
         self.comb += por_done.eq(por_count == 0)
         self.sync.por += If(~por_done, por_count.eq(por_count - 1))
 
         # PLL
         self.submodules.pll = pll = ECP5PLL()
+        self.comb += pll.reset.eq(~por_done | ~rst_n)
         pll.register_clkin(clk100, 100e6)
         pll.create_clkout(self.cd_sys2x_i, 2*sys_clk_freq)
         pll.create_clkout(self.cd_init, 25e6)
@@ -62,10 +67,10 @@ class _CRG(Module):
                 p_DIV     = "2.0",
                 i_ALIGNWD = 0,
                 i_CLKI    = self.cd_sys2x.clk,
-                i_RST     = self.cd_sys2x.rst,
+                i_RST     = self.reset,
                 o_CDIVX   = self.cd_sys.clk),
-            AsyncResetSynchronizer(self.cd_init, ~por_done | ~pll.locked | ~rst_n),
-            AsyncResetSynchronizer(self.cd_sys,  ~por_done | ~pll.locked | ~rst_n)
+            AsyncResetSynchronizer(self.cd_sys,   ~pll.locked | self.reset),
+            AsyncResetSynchronizer(self.cd_sys2x, ~pll.locked | self.reset),
         ]
 
 # BaseSoC ------------------------------------------------------------------------------------------
@@ -75,7 +80,10 @@ class BaseSoC(SoCCore):
         platform = ecpix5.Platform(toolchain="trellis")
 
         # SoCCore ----------------------------------------------------------------------------------
-        SoCCore.__init__(self, platform, clk_freq=sys_clk_freq, **kwargs)
+        SoCCore.__init__(self, platform, sys_clk_freq,
+            ident          = "LiteX SoC on ECPIX-5",
+            ident_version  = True,
+            **kwargs)
 
         # CRG --------------------------------------------------------------------------------------
         self.submodules.crg = _CRG(platform, sys_clk_freq)
@@ -87,6 +95,7 @@ class BaseSoC(SoCCore):
                 sys_clk_freq=sys_clk_freq)
             self.add_csr("ddrphy")
             self.comb += self.crg.stop.eq(self.ddrphy.init.stop)
+            self.comb += self.crg.reset.eq(self.ddrphy.init.reset)
             self.add_sdram("sdram",
                 phy                     = self.ddrphy,
                 module                  = MT41K256M16(sys_clk_freq, "1:2"),
@@ -117,6 +126,7 @@ def main():
     parser = argparse.ArgumentParser(description="LiteX SoC on ECPIX-5")
     parser.add_argument("--build", action="store_true", help="Build bitstream")
     parser.add_argument("--load",  action="store_true", help="Load bitstream")
+    parser.add_argument("--with-sdcard", action="store_true",     help="Enable SDCard support")
     builder_args(parser)
     soc_core_args(parser)
     trellis_args(parser)
@@ -124,12 +134,14 @@ def main():
     args = parser.parse_args()
 
     soc     = BaseSoC(with_ethernet=args.with_ethernet, **soc_core_argdict(args))
+    if args.with_sdcard:
+        soc.add_sdcard()
     builder = Builder(soc, **builder_argdict(args))
     builder.build(**trellis_argdict(args), run=args.build)
 
     if args.load:
         prog = soc.platform.create_programmer()
-        prog.load_bitstream(os.path.join(builder.gateware_dir, "top.svf"))
+        prog.load_bitstream(os.path.join(builder.gateware_dir, soc.build_name + ".svf"))
 
 if __name__ == "__main__":
     main()

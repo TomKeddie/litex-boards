@@ -1,5 +1,8 @@
-# This file is Copyright (c) 2020 Vamsi K Vytla <vamsi.vytla@gmail.com>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2020 Vamsi K Vytla <vamsi.vytla@gmail.com>
+# SPDX-License-Identifier: BSD-2-Clause
 
 
 # The Marble-Mini is a simple AMC FMC carrier board with SFP, 2x FMC, PoE, DDR3:
@@ -229,6 +232,13 @@ _connectors = [
         "LA33_N":     "AB17",
         "LA33_P":     "AB16"
     })
+]
+
+_pmod0_pins    = ["PMOD0:{}".format(i) for i in range(8)]
+_pmod1_pins    = ["PMOD1:{}".format(i) for i in range(8)]
+break_off_pmod = [
+    ("pmod0", 0, Pins(*_pmod0_pins), IOStandard("LVCMOS33")),
+    ("pmod1", 0, Pins(*_pmod1_pins), IOStandard("LVCMOS33")),
 ]
 
 # Platform -----------------------------------------------------------------------------------------

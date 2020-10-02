@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
-# This file is Copyright (c) 2020 Michael Welling <mwelling@ieee.org>
-# This file is Copyright (c) 2020 Sean Cross <sean@xobs.io>
-# This file is Copyright (c) 2020 Drew Fustini <drew@pdp7.com>
-# This file is Copyright (c) 2020 Florent Kermarrec <florent@enjoy-digital.fr>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2020 Michael Welling <mwelling@ieee.org>
+# Copyright (c) 2020 Sean Cross <sean@xobs.io>
+# Copyright (c) 2020 Drew Fustini <drew@pdp7.com>
+# Copyright (c) 2020 Florent Kermarrec <florent@enjoy-digital.fr>
+# SPDX-License-Identifier: BSD-2-Clause
 
 import os
 import argparse
@@ -45,7 +48,6 @@ class _CRG(Module):
         pll.register_clkin(clk8, 8e6)
         pll.create_clkout(self.cd_sys,    sys_clk_freq)
         pll.create_clkout(self.cd_sys_ps, sys_clk_freq, phase=90)
-        self.specials += AsyncResetSynchronizer(self.cd_sys, ~pll.locked)
 
         # SDRAM clock
         self.specials += DDROutput(1, 0, platform.request("sdram_clock"), ClockSignal("sys_ps"))
@@ -57,7 +59,10 @@ class BaseSoC(SoCCore):
         platform = hadbadge.Platform(toolchain=toolchain)
 
         # SoCCore ---------------------------------------------------------------------------------
-        SoCCore.__init__(self, platform, clk_freq=sys_clk_freq, **kwargs)
+        SoCCore.__init__(self, platform, sys_clk_freq,
+            ident          = "LiteX SoC on Hackaday Badge",
+            ident_version  = True,
+            **kwargs)
 
         # CRG --------------------------------------------------------------------------------------
         self.submodules.crg = _CRG(platform, sys_clk_freq)
@@ -80,7 +85,7 @@ class BaseSoC(SoCCore):
 def main():
     parser = argparse.ArgumentParser(description="LiteX SoC on Hackaday Badge")
     parser.add_argument("--build", action="store_true", help="Build bitstream")
-    parser.add_argument("--gateware-toolchain", dest="toolchain", default="trellis", help="Gateware toolchain to use, trellis (default) or diamond")
+    parser.add_argument("--toolchain", default="trellis", help="Gateware toolchain to use, trellis (default) or diamond")
     parser.add_argument("--sys-clk-freq", default=48e6, help="System clock frequency (default=48MHz)")
     builder_args(parser)
     soc_sdram_args(parser)

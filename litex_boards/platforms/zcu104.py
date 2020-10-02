@@ -1,6 +1,9 @@
-# This file is Copyright (c) 2020 Antmicro <www.antmicro.com>
-# This file is Copyright (c) 2019 David Shah <dave@ds0.me>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2020 Antmicro <www.antmicro.com>
+# Copyright (c) 2019 David Shah <dave@ds0.me>
+# SPDX-License-Identifier: BSD-2-Clause
 
 from litex.build.generic_platform import *
 from litex.build.xilinx import XilinxPlatform, VivadoProgrammer
@@ -41,6 +44,12 @@ _io = [
         Subsignal("tx", Pins("C19")),
         Subsignal("rx", Pins("A20")),
         IOStandard("LVCMOS18")
+    ),
+
+    ("i2c", 0,
+        Subsignal("sda", Pins("P12")),
+        Subsignal("scl", Pins("N12")),
+        IOStandard("LVCMOS33")
     ),
 
     ("ddram", 0,

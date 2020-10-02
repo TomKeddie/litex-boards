@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
-# This file is Copyright (c) 2015-2019 Florent Kermarrec <florent@enjoy-digital.fr>,
-# This file is Copyright (c) 2020 Staf Verhaegen <staf@fibraservi.eu>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2015-2019 Florent Kermarrec <florent@enjoy-digital.fr>,
+# Copyright (c) 2020 Staf Verhaegen <staf@fibraservi.eu>
+# SPDX-License-Identifier: BSD-2-Clause
 
 import os
 import argparse
@@ -51,7 +54,10 @@ class BaseSoC(SoCCore):
         platform = arty_s7.Platform()
 
         # SoCCore ----------------------------------------------------------------------------------
-        SoCCore.__init__(self, platform, clk_freq=sys_clk_freq, **kwargs)
+        SoCCore.__init__(self, platform, sys_clk_freq,
+            ident          = "LiteX SoC on Arty S7",
+            ident_version  = True,
+            **kwargs)
 
         # CRG --------------------------------------------------------------------------------------
         self.submodules.crg = _CRG(platform, sys_clk_freq)
@@ -76,7 +82,7 @@ class BaseSoC(SoCCore):
 
         # Leds -------------------------------------------------------------------------------------
         self.submodules.leds = LedChaser(
-            pads         = Cat(*[platform.request("user_led", i) for i in range(4)]),
+            pads         = platform.request_all("user_led"),
             sys_clk_freq = sys_clk_freq)
         self.add_csr("leds")
 
@@ -97,7 +103,7 @@ def main():
 
     if args.load:
         prog = soc.platform.create_programmer()
-        prog.load_bitstream(os.path.join(builder.gateware_dir, "top.bit"))
+        prog.load_bitstream(os.path.join(builder.gateware_dir, soc.build_name + ".bit"))
 
 if __name__ == "__main__":
     main()

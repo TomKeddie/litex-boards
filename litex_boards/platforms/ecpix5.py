@@ -1,5 +1,8 @@
-# This file is Copyright (c) 2020 Florent Kermarrec <florent@enjoy-digital.fr>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2020 Florent Kermarrec <florent@enjoy-digital.fr>
+# SPDX-License-Identifier: BSD-2-Clause
 
 from litex.build.generic_platform import *
 from litex.build.lattice import LatticePlatform
@@ -84,6 +87,17 @@ _io = [
         Subsignal("tx_ctl",  Pins("C9")),
         Subsignal("tx_data", Pins("D8 C8 B8 A8")),
         IOStandard("LVCMOS33")
+    ),
+
+    # sdcard
+    ("sdcard", 0,
+        Subsignal("data",      Pins("N26 N25 N23 N21"), Misc("PULLMODE=UP")),
+        Subsignal("cmd",       Pins("M24"),             Misc("PULLMODE=UP")),
+        Subsignal("clk",       Pins("P24")),
+        Subsignal("cmd_dir",   Pins("M23")),
+        Subsignal("dat0_dir",  Pins("N24")),
+        Subsignal("dat13_dir", Pins("P26")),
+        IOStandard("LVCMOS33"),
     ),
 ]
 

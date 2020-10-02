@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
-# This file is Copyright (c) 2019 Arnaud Durand <arnaud.durand@unifr.ch>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2019 Arnaud Durand <arnaud.durand@unifr.ch>
+# SPDX-License-Identifier: BSD-2-Clause
 
 import os
 import argparse
@@ -37,7 +40,6 @@ class _CRG(Module):
         self.comb += pll.reset.eq(~rst_n)
         pll.register_clkin(clk, x5_clk_freq or 12e6)
         pll.create_clkout(self.cd_sys, sys_clk_freq)
-        self.specials += AsyncResetSynchronizer(self.cd_sys, ~rst_n)
 
 # BaseSoC ------------------------------------------------------------------------------------------
 
@@ -46,7 +48,10 @@ class BaseSoC(SoCCore):
         platform = ecp5_evn.Platform(toolchain=toolchain)
 
         # SoCCore ----------------------------------------------------------------------------------
-        SoCCore.__init__(self, platform, clk_freq=sys_clk_freq, **kwargs)
+        SoCCore.__init__(self, platform, sys_clk_freq,
+            ident          = "LiteX SoC on ECP5 Evaluation Board",
+            ident_version  = True,
+            **kwargs)
 
         # CRG --------------------------------------------------------------------------------------
         crg = _CRG(platform, sys_clk_freq, x5_clk_freq)
@@ -54,7 +59,7 @@ class BaseSoC(SoCCore):
 
         # Leds -------------------------------------------------------------------------------------
         self.submodules.leds = LedChaser(
-            pads         = Cat(*[platform.request("user_led", i) for i in range(8)]),
+            pads         = platform.request_all("user_led"),
             sys_clk_freq = sys_clk_freq)
         self.add_csr("leds")
 
@@ -64,7 +69,7 @@ def main():
     parser = argparse.ArgumentParser(description="LiteX SoC on ECP5 Evaluation Board")
     parser.add_argument("--build", action="store_true", help="Build bitstream")
     parser.add_argument("--load",  action="store_true", help="Load bitstream")
-    parser.add_argument("--gateware-toolchain", dest="toolchain", default="trellis", help="Gateware toolchain to use, trellis (default) or diamond")
+    parser.add_argument("--toolchain", default="trellis", help="Gateware toolchain to use, trellis (default) or diamond")
     builder_args(parser)
     soc_core_args(parser)
     parser.add_argument("--sys-clk-freq", default=60e6, help="System clock frequency (default=60MHz)")
@@ -80,7 +85,7 @@ def main():
 
     if args.load:
         prog = soc.platform.create_programmer()
-        prog.load_bitstream(os.path.join(builder.gateware_dir, "top.svf"))
+        prog.load_bitstream(os.path.join(builder.gateware_dir, soc.build_name + ".svf"))
 
 if __name__ == "__main__":
     main()

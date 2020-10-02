@@ -1,5 +1,8 @@
-# This file is Copyright (c) 2019 msloniewski <marcin.sloniewski@gmail.com>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2019 msloniewski <marcin.sloniewski@gmail.com>
+# SPDX-License-Identifier: BSD-2-Clause
 
 from litex.build.generic_platform import *
 from litex.build.altera import AlteraPlatform
@@ -66,7 +69,7 @@ _io = [
         IOStandard("3.3-V LVTTL")
     ),
 
-    ("vga_out", 0,
+    ("vga", 0,
         Subsignal("hsync_n", Pins("N3")),
         Subsignal("vsync_n", Pins("N1")),
         Subsignal("r", Pins("AA1 V1 Y2 Y1")),

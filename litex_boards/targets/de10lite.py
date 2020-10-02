@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
-# This file is Copyright (c) 2019 msloniewski <marcin.sloniewski@gmail.com>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2019 msloniewski <marcin.sloniewski@gmail.com>
+# SPDX-License-Identifier: BSD-2-Clause
 
 import os
 import argparse
@@ -14,6 +17,7 @@ from litex.build.io import DDROutput
 from litex_boards.platforms import de10lite
 
 from litex.soc.cores.clock import Max10PLL
+from litex.soc.integration.soc import SoCRegion
 from litex.soc.integration.soc_core import *
 from litex.soc.integration.soc_sdram import *
 from litex.soc.integration.builder import *
@@ -50,11 +54,14 @@ class _CRG(Module):
 # BaseSoC ------------------------------------------------------------------------------------------
 
 class BaseSoC(SoCCore):
-    def __init__(self, sys_clk_freq=int(50e6), **kwargs):
+    def __init__(self, sys_clk_freq=int(50e6), with_vga=False, **kwargs):
         platform = de10lite.Platform()
 
         # SoCCore ----------------------------------------------------------------------------------
-        SoCCore.__init__(self, platform, clk_freq=sys_clk_freq, **kwargs)
+        SoCCore.__init__(self, platform, sys_clk_freq,
+            ident          = "LiteX SoC on DE10-Lite",
+            ident_version  = True,
+            **kwargs)
 
         # CRG --------------------------------------------------------------------------------------
         self.submodules.crg = _CRG(platform, sys_clk_freq)
@@ -72,42 +79,29 @@ class BaseSoC(SoCCore):
                 l2_cache_reverse        = True
             )
 
+        # VGA Terminal -----------------------------------------------------------------------------
+        if with_vga:
+            self.submodules.terminal = terminal = Terminal()
+            self.bus.add_slave("terminal", self.terminal.bus, region=SoCRegion(origin=0x30000000, size=0x10000))
+            vga_pads = platform.request("vga")
+            self.comb += [
+                vga_pads.vsync_n.eq(terminal.vsync),
+                vga_pads.hsync_n.eq(terminal.hsync),
+                vga_pads.r.eq(terminal.red[4:8]),
+                vga_pads.g.eq(terminal.green[4:8]),
+                vga_pads.b.eq(terminal.blue[4:8])
+            ]
+
         # Leds -------------------------------------------------------------------------------------
         self.submodules.leds = LedChaser(
-            pads         = Cat(*[platform.request("user_led", i) for i in range(10)]),
+            pads         = platform.request_all("user_led"),
             sys_clk_freq = sys_clk_freq)
         self.add_csr("leds")
-
-# VGASoC -------------------------------------------------------------------------------------------
-
-class VGASoC(BaseSoC):
-    mem_map = {
-        "terminal": 0x30000000,
-    }
-    mem_map.update(BaseSoC.mem_map)
-
-    def __init__(self, **kwargs):
-        BaseSoC.__init__(self, **kwargs)
-
-        # create VGA terminal
-        self.submodules.terminal = terminal = Terminal()
-        self.add_wb_slave(self.mem_map["terminal"], self.terminal.bus)
-        self.add_memory_region("terminal", self.mem_map["terminal"], 0x10000)
-
-        # connect VGA pins
-        vga = self.platform.request('vga_out', 0)
-        self.comb += [
-            vga.vsync_n.eq(terminal.vsync),
-            vga.hsync_n.eq(terminal.hsync),
-            vga.r.eq(terminal.red[4:8]),
-            vga.g.eq(terminal.green[4:8]),
-            vga.b.eq(terminal.blue[4:8])
-        ]
 
 # Build --------------------------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="LiteX SoC on DE10 Lite")
+    parser = argparse.ArgumentParser(description="LiteX SoC on DE10-Lite")
     parser.add_argument("--build", action="store_true", help="Build bitstream")
     parser.add_argument("--load",  action="store_true", help="Load bitstream")
     builder_args(parser)
@@ -115,14 +109,13 @@ def main():
     parser.add_argument("--with-vga", action="store_true", help="Enable VGA support")
     args = parser.parse_args()
 
-    cls = VGASoC if args.with_vga else BaseSoC
-    soc = cls(**soc_sdram_argdict(args))
+    soc = BaseSoC(with_vga=args.with_vga, **soc_sdram_argdict(args))
     builder = Builder(soc, **builder_argdict(args))
     builder.build(run=args.build)
 
     if args.load:
         prog = soc.platform.create_programmer()
-        prog.load_bitstream(os.path.join(builder.gateware_dir, "top.sof"))
+        prog.load_bitstream(os.path.join(builder.gateware_dir, soc.build_name + ".sof"))
 
 if __name__ == "__main__":
     main()

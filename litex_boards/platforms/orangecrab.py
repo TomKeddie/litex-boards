@@ -1,19 +1,28 @@
-# This file is Copyright (c) Greg Davill <greg.davill@gmail.com>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2020 Greg Davill <greg.davill@gmail.com>
+# SPDX-License-Identifier: BSD-2-Clause
 
 from litex.build.generic_platform import *
 from litex.build.lattice import LatticePlatform
+from litex.build.dfu import DFUProg
 
 # IOs ----------------------------------------------------------------------------------------------
 
 _io_r0_1 = [
     ("clk48", 0,  Pins("A9"),  IOStandard("LVCMOS33")),
+    ("rst_n", 0, Pins("R16"), IOStandard("LVCMOS33")),
 
     ("rgb_led", 0,
         Subsignal("r", Pins("V17"), IOStandard("LVCMOS33")),
         Subsignal("g", Pins("T17"), IOStandard("LVCMOS33")),
         Subsignal("b", Pins("J3"),  IOStandard("LVCMOS33")),
     ),
+
+    ("user_led", 0, Pins("V17"), IOStandard("LVCMOS33")), # rgb_led.r
+    ("user_led", 1, Pins("T17"), IOStandard("LVCMOS33")), # rgb_led.g
+    ("user_led", 2, Pins("J3"),  IOStandard("LVCMOS33")), # rgb_led.b
 
     ("ddram", 0,
         Subsignal("a", Pins(
@@ -40,9 +49,16 @@ _io_r0_1 = [
         Misc("SLEWRATE=FAST")
     ),
 
+    ("usb", 0,
+        Subsignal("d_p", Pins("N1")),
+        Subsignal("d_n", Pins("M2")),
+        Subsignal("pullup", Pins("N2")),
+        IOStandard("LVCMOS33")
+    ),
+
     ("spiflash4x", 0,
         Subsignal("cs_n", Pins("U17")),
-        Subsignal("clk",  Pins("U16")),
+    #    Subsignal("clk",  Pins("U16")),
         Subsignal("dq",   Pins("U18 T18 R18 N18")),
         IOStandard("LVCMOS33")
     ),
@@ -78,6 +94,10 @@ _io_r0_2 = [
         Subsignal("b", Pins("J3"), IOStandard("LVCMOS33")),
     ),
 
+    ("user_led", 0, Pins("K4"), IOStandard("LVCMOS33")), # rgb_led.r
+    ("user_led", 1, Pins("M3"), IOStandard("LVCMOS33")), # rgb_led.g
+    ("user_led", 2, Pins("J3"), IOStandard("LVCMOS33")), # rgb_led.b
+
     ("ddram", 0,
         Subsignal("a", Pins(
             "C4 D2 D3 A3 A4 D4 C3 B2",
@@ -93,7 +113,7 @@ _io_r0_2 = [
             "C17 D15 B17 C16 A15 B13 A17 A13",
             "F17 F16 G15 F15 J16 C18 H16 F18"),
             IOStandard("SSTL135_I"),
-            Misc("TERMINATION=75")),
+            Misc("TERMINATION=OFF")), # Misc("TERMINATION=75") Disabled to reduce heat
         Subsignal("dqs_p", Pins("B15 G18"), IOStandard("SSTL135D_I"),
             Misc("TERMINATION=OFF"),
             Misc("DIFFRESISTOR=100")),
@@ -135,6 +155,13 @@ _io_r0_2 = [
         Misc("SLEW=FAST"),
         IOStandard("LVCMOS33"),
     ),
+
+    ("sdcard", 0,
+        Subsignal("clk",  Pins("K1")),
+        Subsignal("cmd",  Pins("K2"), Misc("PULLMODE=UP")),
+        Subsignal("data", Pins("J1 K3 L3 M1"), Misc("PULLMODE=UP")),
+        IOStandard("LVCMOS33"), Misc("SLEW=FAST")
+    ),
 ]
 
 # Connectors ---------------------------------------------------------------------------------------
@@ -162,16 +189,16 @@ feather_serial = [
 
 feather_i2c = [
     ("i2c", 0,
-        ("sda", Pins("GPIO:2"), IOStandard("LVCMOS33")),
-        ("scl", Pins("GPIO:3"), IOStandard("LVCMOS33"))
+        Subsignal("sda", Pins("GPIO:2"), IOStandard("LVCMOS33")),
+        Subsignal("scl", Pins("GPIO:3"), IOStandard("LVCMOS33"))
     )
 ]
 
 feather_spi = [
     ("spi",0,
-        ("miso", Pins("GPIO:14"), IOStandard("LVCMOS33")),
-        ("mosi", Pins("GPIO:16"), IOStandard("LVCMOS33")),
-        ("sck",  Pins("GPIO:15"), IOStandard("LVCMOS33"))
+        Subsignal("miso", Pins("GPIO:14"), IOStandard("LVCMOS33")),
+        Subsignal("mosi", Pins("GPIO:16"), IOStandard("LVCMOS33")),
+        Subsignal("sck",  Pins("GPIO:15"), IOStandard("LVCMOS33"))
     )
 ]
 
@@ -188,6 +215,9 @@ class Platform(LatticePlatform):
         io         = {"0.1": _io_r0_1,            "0.2": _io_r0_2        }[revision]
         connectors = {"0.1": _connectors_r0_1,    "0.2": _connectors_r0_2}[revision]
         LatticePlatform.__init__(self, f"LFE5U-{device}-8MG285C", io, connectors, **kwargs)
+
+    def create_programmer(self):
+        return DFUProg(vid="1209", pid="5af0")
 
     def do_finalize(self, fragment):
         LatticePlatform.do_finalize(self, fragment)

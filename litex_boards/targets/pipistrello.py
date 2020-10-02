@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
-# This file is Copyright (c) 2015 Robert Jordens <jordens@gmail.com>
-# This file is Copyright (c) 2015 Sebastien Bourdeauducq <sb@m-labs.hk>
-# This file is Copyright (c) 2015 Yann Sionneau <yann.sionneau@gmail.com>
-# This file is Copyright (c) 2016-2017 Tim 'mithro' Ansell <mithro@mithis.com>
-# This file is Copyright (c) 2019 Florent Kermarrec <florent@enjoy-digital.fr>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2015 Robert Jordens <jordens@gmail.com>
+# Copyright (c) 2015 Sebastien Bourdeauducq <sb@m-labs.hk>
+# Copyright (c) 2015 Yann Sionneau <yann.sionneau@gmail.com>
+# Copyright (c) 2016-2017 Tim 'mithro' Ansell <mithro@mithis.com>
+# Copyright (c) 2019 Florent Kermarrec <florent@enjoy-digital.fr>
+# SPDX-License-Identifier: BSD-2-Clause
 
 import os
 import argparse
@@ -154,8 +157,11 @@ class BaseSoC(SoCCore):
         sys_clk_freq = (83 + Fraction(1, 3))*1000*1000
         platform     = pipistrello.Platform()
 
-        # SoCCore -----------------------------------------------------------------_----------------
-        SoCCore.__init__(self, platform, clk_freq=sys_clk_freq, **kwargs)
+        # SoCCore ----------------------------------------------------------------------------------
+        SoCCore.__init__(self, platform, sys_clk_freq,
+            ident          = "LiteX SoC on Pipistrello",
+            ident_version  = True,
+            **kwargs)
 
         # CRG --------------------------------------------------------------------------------------
         self.submodules.crg = _CRG(platform, sys_clk_freq)
@@ -185,7 +191,7 @@ class BaseSoC(SoCCore):
 
         # Leds -------------------------------------------------------------------------------------
         self.submodules.leds = LedChaser(
-            pads         = Cat(*[platform.request("user_led", i) for i in range(5)]),
+            pads         = platform.request_all("user_led"),
             sys_clk_freq = sys_clk_freq)
         self.add_csr("leds")
 
@@ -205,7 +211,7 @@ def main():
 
     if args.load:
         prog = soc.platform.create_programmer()
-        prog.load_bitstream(os.path.join(builder.gateware_dir, "top.bit"))
+        prog.load_bitstream(os.path.join(builder.gateware_dir, soc.build_name + ".bit"))
 
 if __name__ == "__main__":
     main()

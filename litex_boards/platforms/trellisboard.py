@@ -1,5 +1,8 @@
-# This file is Copyright (c) 2019 David Shah <dave@ds0.me>
-# License: BSD
+#
+# This file is part of LiteX-Boards.
+#
+# Copyright (c) 2019 David Shah <dave@ds0.me>
+# SPDX-License-Identifier: BSD-2-Clause
 
 from litex.build.generic_platform import *
 from litex.build.lattice import LatticePlatform
@@ -53,6 +56,7 @@ _io = [
         Subsignal("siwu_n", Pins("AJ28"), IOStandard("LVCMOS33")),
     ),
 
+    ("dram_vtt_en", 0, Pins("E25"), IOStandard("LVCMOS33")),
     ("ddram", 0,
         Subsignal("a", Pins(
             "E30 F28 C32 E29 F32 D30 E32 D29",
@@ -80,8 +84,6 @@ _io = [
         Subsignal("reset_n", Pins("L32"), IOStandard("SSTL135_I")),
         Misc("SLEWRATE=FAST"),
     ),
-
-     ("dram_vtt_en", 0, Pins("E25"), IOStandard("LVCMOS33")),
 
     ("eth_clocks", 0,
         Subsignal("tx",  Pins("A15")),
@@ -146,7 +148,7 @@ _io = [
         Subsignal("mosi", Pins("AH3"), Misc("PULLMODE=UP")),
         Subsignal("cs_n", Pins("AK1"), Misc("PULLMODE=UP")),
         Subsignal("miso", Pins("AG1"), Misc("PULLMODE=UP")),
-        Misc("SLEW=FAST"),
+        Misc("SLEWRATE=FAST"),
         IOStandard("LVCMOS33"),
     ),
 
@@ -154,7 +156,8 @@ _io = [
         Subsignal("clk",  Pins("AK3")),
         Subsignal("cmd",  Pins("AH3"), Misc("PULLMODE=UP")),
         Subsignal("data", Pins("AG1 AJ1 AH1 AK1"), Misc("PULLMODE=UP")),
-        IOStandard("LVCMOS33"), Misc("SLEW=FAST")
+        Misc("SLEWRATE=FAST"),
+        IOStandard("LVCMOS33"),
     ),
 
     ("spiflash4x", 0,
@@ -209,8 +212,34 @@ _connectors = [
     ("ext0", "T1 U1 AE5 AE4 AB5 AB6 Y5 W5 W2 Y1 AB7 AC6 AB3 AB4 AD3 AE3 AB1 AC1 AD1 AE1 AD6 AE6 AC7 AD7"),
     ("ext1", "P5 P4 R7 T7 R6 T6 U6 U7 R4 T5 T4 U5 U4 V4 V6 V7 P2 P3 R3 T3 N1 P1 U2 U3"),
     ("ext2", "K6 K7 J7 J6 H6 H5 F4 F5 F3 E3 C4 C3 C5 D5 D3 D2 H2 H3 J3 K3 B1 C2 F1 H1")
-
 ]
+
+
+# PMODS --------------------------------------------------------------------------------------------
+
+def sdcard_pmod_io(pmod):
+    return [
+        # SDCard PMOD:
+        # - https://store.digilentinc.com/pmod-microsd-microsd-card-slot/
+        # - https://github.com/antmicro/arty-expansion-board
+        ("spisdcard", 0,
+            Subsignal("clk",  Pins(f"{pmod}:3")),
+            Subsignal("mosi", Pins(f"{pmod}:1"), Misc("PULLMODE=UP")),
+            Subsignal("cs_n", Pins(f"{pmod}:0"), Misc("PULLMODE=UP")),
+            Subsignal("miso", Pins(f"{pmod}:2"), Misc("PULLMODE=UP")),
+            Misc("SLEWRATE=FAST"),
+            IOStandard("LVCMOS33"),
+        ),
+        ("sdcard", 0,
+            Subsignal("data", Pins(f"{pmod}:2 {pmod}:4 {pmod}:5 {pmod}:0"), Misc("PULLMODE=UP")),
+            Subsignal("cmd",  Pins(f"{pmod}:1"), Misc("PULLMODE=UP")),
+            Subsignal("clk",  Pins(f"{pmod}:3")),
+            Subsignal("cd",   Pins(f"{pmod}:6")),
+            Misc("SLEWRATE=FAST"),
+            IOStandard("LVCMOS33"),
+        ),
+]
+_sdcard_pmod_io = sdcard_pmod_io("pmoda") # SDCARD PMOD on PMODA.
 
 # Platform -----------------------------------------------------------------------------------------
 
